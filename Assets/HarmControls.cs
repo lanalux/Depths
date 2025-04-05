@@ -39,7 +39,6 @@ public class HarmControls : MonoBehaviour
     }
 
     public void StartTakingDamage(){
-        Debug.Log("Start taking damage");
         if(isTakingDamage){
             return;
         }
@@ -48,7 +47,6 @@ public class HarmControls : MonoBehaviour
     }
 
     public void ContinuTakingDamage(){
-        Debug.Log("ow");
         currentRedFlashTime -= Time.deltaTime;
         if(currentRedFlashTime <= 0 ){
             if(redFlashIsOn){

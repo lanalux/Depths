@@ -26,6 +26,10 @@ public class MainControls : MonoBehaviour
     public float maxHealth;
     public float damageAmount;
 
+    
+    public float maxDistanceToShip;
+    float bufferAmount = 0.3f;
+
     Transform currentTarget;
     RaycastHit hit;
 
@@ -43,8 +47,6 @@ public class MainControls : MonoBehaviour
     float tetherTimerMax = 3.0f;
     [SerializeField] TextMeshProUGUI tetherWarningText;
 
-    float maxDistanceToShip = 20.0f;
-    float bufferAmount = 0.3f;
 
 
     int currentElementBeingMined;
