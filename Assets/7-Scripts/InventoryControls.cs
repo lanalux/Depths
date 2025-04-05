@@ -12,6 +12,7 @@ public class InventoryControls : MonoBehaviour
     public static InventoryControls Instance {get;set;}
 
     public List<Elements> elements = new List<Elements>();
+    public List<GameObject> elementImages = new List<GameObject>();
 
     void Awake(){
         if(Instance==null){
