@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public class HarmControls : MonoBehaviour
@@ -14,6 +15,8 @@ public class HarmControls : MonoBehaviour
 
     [SerializeField] CanvasGroup redOverlay;
     [SerializeField] RectTransform healthBar;
+    public TextMeshProUGUI tetherWarningText, warningTitleText;
+    public CanvasGroup tetherWarning;
 
     float healthBarWidth;
     float healthBarHeight;
@@ -27,6 +30,7 @@ public class HarmControls : MonoBehaviour
     void Start(){
         healthBarWidth = healthBar.sizeDelta.x;
         healthBarHeight = healthBar.sizeDelta.y;
+        ResetHealth();
     }
 
     void Update(){
@@ -44,6 +48,9 @@ public class HarmControls : MonoBehaviour
         }
         isTakingDamage = true;
         currentRedFlashTime = redFlashTime;
+        
+        warningTitleText.text = "EXTREME HEAT";
+        tetherWarning.alpha = 1.0f;
     }
 
     public void ContinuTakingDamage(){
@@ -75,6 +82,7 @@ public class HarmControls : MonoBehaviour
             return;
         }
         isTakingDamage = false;
+        tetherWarning.alpha = 0.0f;
     }
 
     public void ResetHealth(){

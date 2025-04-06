@@ -4,16 +4,16 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityStandardAssets.Characters.FirstPerson;
 using TMPro;
+using Unity.VisualScripting;
 
 public class MainControls : MonoBehaviour
 {
     public static MainControls Instance {get;set;}
 
     [SerializeField] LayerMask layerMask;
-    [SerializeField] GameObject progressCanvas;
+    [SerializeField] GameObject progressCanvas, particles1;
     [SerializeField] Image progressFill;
     [SerializeField] Transform startPos;
-    [SerializeField] CanvasGroup tetherWarning;
     public Transform player;
     public FirstPersonController fpc;
 
@@ -38,16 +38,15 @@ public class MainControls : MonoBehaviour
     bool isHovering = false;
     bool isMining = false;
 
-    float miningTime = 2.0f;
+    float miningTime = 3.0f;
     float timeElapsed = 0;
 
     bool isInShip = true;
     bool isWithinTether = true;
     float tetherTimer;
     float tetherTimerMax = 3.0f;
-    [SerializeField] TextMeshProUGUI tetherWarningText;
 
-
+    [SerializeField] AudioSource collectingSFX, slurpSFX;
 
     int currentElementBeingMined;
 
@@ -59,9 +58,6 @@ public class MainControls : MonoBehaviour
         cam = Camera.main;
     }
 
-    void Start(){
-        HarmControls.Instance.ResetHealth();
-    }
 
     void Update(){
         if(GameControls.Instance.gameIsPaused){
@@ -135,7 +131,7 @@ public class MainControls : MonoBehaviour
                 tetherTimer = 0;
                 StartCoroutine(ResetPlayer());
             }
-            tetherWarningText.text = "Returning you to ship in " + tetherTimer.ToString("f0")  + "...";
+            HarmControls.Instance.tetherWarningText.text = "Returning you to ship in " + tetherTimer.ToString("f0")  + "...";
         }
 
     }
@@ -144,24 +140,45 @@ public class MainControls : MonoBehaviour
         return Vector3.Distance(player.position, startPos.position);
     }
 
+    Transform currentlyMining;
+
     void StartMining(){
         if(isMining){
             return;
         }
         isMining = true;
-        currentElementBeingMined = currentTarget.GetComponent<ElementInfo>().elementNum;
+        currentlyMining = currentTarget;
+        currentElementBeingMined = currentlyMining.GetComponent<ElementInfo>().elementNum;
         timeElapsed = 0;
-        progressCanvas.transform.position = currentTarget.position;
+        progressCanvas.transform.position = currentlyMining.position;
         progressCanvas.transform.LookAt(player);
         progressCanvas.SetActive(true);
+        particles1.transform.position = currentlyMining.position;
+        particles1.SetActive(true);
+        collectingSFX.transform.position = currentlyMining.position;
+        AudioControls.Instance.StopFade(collectingSFX);
+        collectingSFX.Play();
+        wobbleStartPos = currentlyMining.position;
     }
 
+    float wobbleTimer = 0.01f;
+    float minWobbleTime = 0.01f;
+    float maxWobbleTime = 0.02f;
+    float minWobbleAmount = 0.01f;
+    float maxWobbleAmount = 0.04f;
+    Vector3 wobbleStartPos;
 
     void ContinueMining(){
         if(!isMining){
             return;
         }
         timeElapsed += Time.deltaTime;
+        wobbleTimer -= Time.deltaTime;
+        if(wobbleTimer <= 0.000f){
+            wobbleTimer = Random.Range(minWobbleTime, maxWobbleTime);
+            currentlyMining.position = wobbleStartPos + new Vector3(Random.Range(minWobbleAmount,maxWobbleAmount), Random.Range(minWobbleAmount,maxWobbleAmount), Random.Range(minWobbleAmount,maxWobbleAmount));
+        }
+
         if(timeElapsed >= miningTime){
             Collected();
             timeElapsed = miningTime;
@@ -176,12 +193,40 @@ public class MainControls : MonoBehaviour
         }
         isMining = false;
         progressCanvas.SetActive(false);
+        particles1.SetActive(false);
+        Debug.Log("wtf");
+        AudioControls.Instance.FadeOutSource(collectingSFX);
+        currentlyMining.GetComponent<Collider>().enabled = false;
+        currentlyMining.position = wobbleStartPos;
+        StartCoroutine(CollectObject());
     }
 
     void Collected(){
         InventoryControls.Instance.elements[currentElementBeingMined].amount++;
         HUDControls.Instance.UpdateElements();
-        Destroy(currentTarget.gameObject);
+        
+    }
+
+    float collectingDuration = 0.30f;
+
+    IEnumerator CollectObject(){
+        slurpSFX.Play();
+        Vector3 startPos = currentlyMining.position;
+        Vector3 endPos = player.position;
+        float t = 0f;
+        while(t < collectingDuration){
+            t += Time.deltaTime;
+
+            float normalizedTime = Mathf.Clamp01(t / collectingDuration);
+            float easedT = 1f - Mathf.Pow(1f - normalizedTime, 3f);
+            currentlyMining.position = Vector3.Lerp(startPos, endPos, easedT);
+
+            // currentlyMining.position = Vector3.Lerp(startPos, endPos, t/collectingDuration);
+            yield return null;
+        }
+
+        currentlyMining.position = endPos;
+        Destroy(currentlyMining.gameObject);
     }
 
     void ClearRaycast(){
@@ -218,7 +263,8 @@ public class MainControls : MonoBehaviour
         }
         tetherTimer = tetherTimerMax;
         isWithinTether = false;
-        tetherWarning.alpha = 1;
+        HarmControls.Instance.warningTitleText.text = "TETHER DISTANCE EXCEEDED";
+        HarmControls.Instance.tetherWarning.alpha = 1;
     }
 
     void ReEnterTether(){
@@ -226,7 +272,7 @@ public class MainControls : MonoBehaviour
             return;
         }
         isWithinTether = true;
-        tetherWarning.alpha = 0;
+        HarmControls.Instance.tetherWarning.alpha = 0;
     }
 
     public IEnumerator ResetPlayer(){
