@@ -324,6 +324,7 @@ public class MainControls : MonoBehaviour
         isWithinTether = false;
         HarmControls.Instance.warningTitleText.text = "TETHER DISTANCE EXCEEDED";
         HarmControls.Instance.tetherWarning.alpha = 1;
+        HarmControls.Instance.warningSFX.Play();
     }
 
     void ReEnterTether(){

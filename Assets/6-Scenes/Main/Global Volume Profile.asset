@@ -33,10 +33,10 @@ MonoBehaviour:
     m_Value: 0.00001
   farFocusStart:
     m_OverrideState: 1
-    m_Value: 10
+    m_Value: 20
   farFocusEnd:
     m_OverrideState: 1
-    m_Value: 90
+    m_Value: 70
   m_NearSampleCount:
     m_OverrideState: 0
     m_Value: 5

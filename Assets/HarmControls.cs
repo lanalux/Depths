@@ -17,6 +17,7 @@ public class HarmControls : MonoBehaviour
     [SerializeField] RectTransform healthBar;
     public TextMeshProUGUI tetherWarningText, warningTitleText;
     public CanvasGroup tetherWarning;
+    public AudioSource warningSFX;
 
     float healthBarWidth;
     float healthBarHeight;
@@ -51,6 +52,7 @@ public class HarmControls : MonoBehaviour
         
         warningTitleText.text = "EXTREME HEAT";
         tetherWarning.alpha = 1.0f;
+        warningSFX.Play();
     }
 
     public void ContinuTakingDamage(){
