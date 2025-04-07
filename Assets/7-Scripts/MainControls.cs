@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityStandardAssets.Characters.FirstPerson;
 using TMPro;
-using Unity.VisualScripting;
 
 public class MainControls : MonoBehaviour
 {
@@ -46,9 +45,12 @@ public class MainControls : MonoBehaviour
     float tetherTimer;
     float tetherTimerMax = 3.0f;
 
-    [SerializeField] AudioSource collectingSFX, slurpSFX;
+    [SerializeField] AudioSource collectingSFX, slurpSFX, voice, explosion;
+    [SerializeField] AudioClip endClip;
 
     int currentElementBeingMined;
+
+    public bool raycastIsPaused = false;
 
 
     void Awake(){
@@ -59,7 +61,30 @@ public class MainControls : MonoBehaviour
     }
 
 
+    void Start(){
+        HUDControls.Instance.overlay.alpha = 1.0f;
+        fpc.enabled = false;
+        raycastIsPaused = true;
+        StartCoroutine(StartOfGame());
+    }
+
+    IEnumerator StartOfGame(){
+        explosion.Play();
+        yield return new WaitForSeconds(1.0f);
+        HUDControls.Instance.FadeIn();
+        yield return new WaitForSeconds(1.0f);
+        voice.Play();
+        HUDControls.Instance.overlay.alpha = 0.0f;
+        fpc.enabled = true;
+        raycastIsPaused = false;
+    }
+
     void Update(){
+        if(raycastIsPaused){
+            return;
+        }
+
+
         if(GameControls.Instance.gameIsPaused){
             if(Input.GetKeyDown(KeyCode.Escape)){
                 GameControls.Instance.ResumeGame();
@@ -80,28 +105,61 @@ public class MainControls : MonoBehaviour
             currentLayer = currentTarget.gameObject.layer;
             isHovering = true;
             
-            HUDControls.Instance.UpdateCursorText(currentTarget.name);
+            if(currentLayer == LayerMask.NameToLayer("Interactive")){
+                HUDControls.Instance.UpdateCursorText("[Hold E to Collect]");
+            } 
+            // HUDControls.Instance.UpdateCursorText(currentTarget.name);
             // Debug.Log("Current Object = " + currentTarget.gameObject.name);
         } else {
             ClearRaycast();
         }
 
         // Mining
-        if(isHovering && currentLayer == LayerMask.NameToLayer("Interactive") && Input.GetMouseButton(0)){ 
+        // if(isHovering && currentLayer == LayerMask.NameToLayer("Interactive") && Input.GetMouseButton(0)){ 
+        if(isHovering && currentLayer == LayerMask.NameToLayer("Interactive") && Input.GetKey(KeyCode.E)){ 
             StartMining();
             ContinueMining();
         }
 
-        // Upgrading
-        if(isHovering && currentLayer == LayerMask.NameToLayer("Upgrade") && Input.GetMouseButtonDown(0)){
+
+        // Hover upgrade
+        // if(isHovering && currentLayer == LayerMask.NameToLayer("Upgrade") && Input.GetMouseButtonDown(0)){
+        if(isHovering && currentLayer == LayerMask.NameToLayer("Upgrade")){
             Upgrade upgradeScript = currentTarget.GetComponent<Upgrade>();
             if(upgradeScript!=null){
-                UpgradeControls.Instance.UpgradeThis(upgradeScript.upgradeNum);
+                bool canUpgrade = UpgradeControls.Instance.CheckToUpgrade(upgradeScript.upgradeNum);
+                if(canUpgrade){
+                    HUDControls.Instance.UpdateCursorText("[E to Upgrade]");
+                } else {
+                    HUDControls.Instance.UpdateCursorText("[More Components Needed]");
+                }
+                if(Input.GetKeyDown(KeyCode.E) && canUpgrade){
+                    StartCoroutine(UpgradeControls.Instance.StartUpgrade(upgradeScript.upgradeNum));
+                }
+            }
+        }
+
+        
+        // EndGameStuff upgrade
+        // if(isHovering && currentLayer == LayerMask.NameToLayer("Upgrade") && Input.GetMouseButtonDown(0)){
+        if(isHovering && currentLayer == LayerMask.NameToLayer("EndGame")){
+            Upgrade upgradeScript = currentTarget.GetComponent<Upgrade>();
+            if(upgradeScript!=null){
+                bool canUpgrade = UpgradeControls.Instance.CheckToUpgrade(2);
+                if(canUpgrade){
+                    HUDControls.Instance.UpdateCursorText("[E to Upgrade]");
+                } else {
+                    HUDControls.Instance.UpdateCursorText("[More Components Needed]");
+                }
+                if(Input.GetKeyDown(KeyCode.E) && canUpgrade){
+                    StartCoroutine(EndGame());
+                }
             }
         }
 
         // Let go while mining
-        if(isMining && Input.GetMouseButtonUp(0)){
+        // if(isMining && Input.GetMouseButtonUp(0)){
+        if(isMining && Input.GetKeyUp(KeyCode.E)){
             StopMining();
         }
 
@@ -147,11 +205,12 @@ public class MainControls : MonoBehaviour
             return;
         }
         isMining = true;
+        HUDControls.Instance.HideCursorHover();
         currentlyMining = currentTarget;
         currentElementBeingMined = currentlyMining.GetComponent<ElementInfo>().elementNum;
         timeElapsed = 0;
-        progressCanvas.transform.position = currentlyMining.position;
-        progressCanvas.transform.LookAt(player);
+        // progressCanvas.transform.position = currentlyMining.position;
+        // progressCanvas.transform.LookAt(player);
         progressCanvas.SetActive(true);
         particles1.transform.position = currentlyMining.position;
         particles1.SetActive(true);
@@ -183,6 +242,7 @@ public class MainControls : MonoBehaviour
             Collected();
             timeElapsed = miningTime;
             StopMining();
+            StartCoroutine(CollectObject());
         }
         progressFill.fillAmount = timeElapsed/miningTime;
     }
@@ -194,16 +254,15 @@ public class MainControls : MonoBehaviour
         isMining = false;
         progressCanvas.SetActive(false);
         particles1.SetActive(false);
-        Debug.Log("wtf");
         AudioControls.Instance.FadeOutSource(collectingSFX);
-        currentlyMining.GetComponent<Collider>().enabled = false;
         currentlyMining.position = wobbleStartPos;
-        StartCoroutine(CollectObject());
+        HUDControls.Instance.ShowCursorHover();
     }
 
     void Collected(){
         InventoryControls.Instance.elements[currentElementBeingMined].amount++;
         HUDControls.Instance.UpdateElements();
+        currentlyMining.GetComponent<Collider>().enabled = false;
         
     }
 
@@ -236,7 +295,7 @@ public class MainControls : MonoBehaviour
         isHovering = false;
         progressCanvas.SetActive(false);
         currentTarget = null;
-        HUDControls.Instance.UpdateCursorText("");
+        HUDControls.Instance.ClearCursor();
     }
 
     public void EnterShip(){
@@ -285,6 +344,27 @@ public class MainControls : MonoBehaviour
         HUDControls.Instance.FadeIn();
     }
 
+    float fadeDuration = 3.0f;
+    IEnumerator EndGame(){
+        
+        HUDControls.Instance.ClearCursor();
+        raycastIsPaused = true;
+        Instance.fpc.enabled = false;
 
+        voice.clip = endClip;
+        voice.Play();
+
+        float startAlpha = 0.00f;
+        float time = 0.0f;
+        fadeDuration = 0.6f;
+        while (time < fadeDuration){
+            time += Time.deltaTime;
+            HUDControls.Instance.overlay.alpha = Mathf.Lerp(startAlpha, 1.0f, time/fadeDuration);
+            yield return null;
+        }
+        HUDControls.Instance.overlay.alpha = 1.0f;
+
+        yield return new WaitForSeconds(3.0f);
+    }
 
 }

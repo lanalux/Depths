@@ -23,6 +23,11 @@ public class UpgradeControls : MonoBehaviour
     public List<Transform> upgradeReqsParent = new List<Transform>();
     
     public List<TextMeshProUGUI> upgradeLevelText = new List<TextMeshProUGUI>();
+    [SerializeField] AudioSource workingSFX;
+
+    bool hasElementsNeeded;
+
+    bool startedUpgrade = false;
 
     void Awake(){
         if(Instance==null){
@@ -30,8 +35,8 @@ public class UpgradeControls : MonoBehaviour
         }
     }
 
-    public void UpgradeThis(int upgradeNum){
-        bool hasElementsNeeded = true;
+    public bool CheckToUpgrade(int upgradeNum){
+        hasElementsNeeded = true;
         List<int> elementsNeeded = new List<int>();
         switch(upgrades[upgradeNum].level){
             case 0:
@@ -75,39 +80,108 @@ public class UpgradeControls : MonoBehaviour
                 hasElementsNeeded = false;
             }
         }
+        return hasElementsNeeded;
+    }
 
-        if(hasElementsNeeded){
+    float fadeDuration;
+    
+
+    public IEnumerator StartUpgrade(int upgradeNum){
+        if(startedUpgrade || !hasElementsNeeded){
+            yield break;
+        }
+        startedUpgrade = true;
+        
+        HUDControls.Instance.ClearCursor();
+        MainControls.Instance.raycastIsPaused = true;
+        MainControls.Instance.fpc.enabled = false;
+        float startAlpha = 0.00f;
+        float time = 0.0f;
+        fadeDuration = 0.6f;
+        while (time < fadeDuration){
+            time += Time.deltaTime;
+            HUDControls.Instance.overlay.alpha = Mathf.Lerp(startAlpha, 1.0f, time/fadeDuration);
+            yield return null;
+        }
+        HUDControls.Instance.overlay.alpha = 1.0f;
+        workingSFX.Play();
+
+
+
+        switch(upgrades[upgradeNum].level){
+            case 0:
+                for (int i=0; i<upgrades[upgradeNum].elementsRequired0.Count; i++){
+                    InventoryControls.Instance.elements[upgrades[upgradeNum].elementsRequired0[i]].amount--;
+                }
+                break;
+            case 1:
+                for (int i=0; i<upgrades[upgradeNum].elementsRequired1.Count; i++){
+                    InventoryControls.Instance.elements[upgrades[upgradeNum].elementsRequired1[i]].amount--;
+                }
+                break;
+            case 2:
+                for (int i=0; i<upgrades[upgradeNum].elementsRequired2.Count; i++){
+                    InventoryControls.Instance.elements[upgrades[upgradeNum].elementsRequired2[i]].amount--;
+                }
+                break;
+            case 3:
+                for (int i=0; i<upgrades[upgradeNum].elementsRequired3.Count; i++){
+                    InventoryControls.Instance.elements[upgrades[upgradeNum].elementsRequired3[i]].amount--;
+                }
+                break;
+            case 4:
+                for (int i=0; i<upgrades[upgradeNum].elementsRequired4.Count; i++){
+                    InventoryControls.Instance.elements[upgrades[upgradeNum].elementsRequired4[i]].amount--;
+                }
+                break;
+        }
+        upgrades[upgradeNum].level ++;
+        HUDControls.Instance.UpdateUpgrades();
+        HUDControls.Instance.UpdateElements();
+        HUDControls.Instance.UpdateUpgradeReqs(upgradeNum);
+
+        yield return new WaitForSeconds(2.5f);
+
+        startAlpha = 1.00f;
+        time = 0.0f;
+        fadeDuration = 1.2f;            
+        while (time < 1.0f){
+            time += Time.deltaTime;
+            HUDControls.Instance.overlay.alpha = Mathf.Lerp(startAlpha, 0.0f, time/fadeDuration);
+            yield return null;
+        }
+
+        HUDControls.Instance.overlay.alpha = 0;
+
+    
+        MainControls.Instance.fpc.enabled = true;
+        MainControls.Instance.raycastIsPaused = false;
+        startedUpgrade = false;
+
+        if(upgradeNum == 3){
             switch(upgrades[upgradeNum].level){
-                case 0:
-                    for (int i=0; i<upgrades[upgradeNum].elementsRequired0.Count; i++){
-                        InventoryControls.Instance.elements[upgrades[upgradeNum].elementsRequired0[i]].amount--;
-                    }
-                    break;
                 case 1:
-                    for (int i=0; i<upgrades[upgradeNum].elementsRequired1.Count; i++){
-                        InventoryControls.Instance.elements[upgrades[upgradeNum].elementsRequired1[i]].amount--;
-                    }
+                    MainControls.Instance.fpc.m_WalkSpeed = 5;
+                    MainControls.Instance.fpc.m_WalkSpeed = 6;
                     break;
                 case 2:
-                    for (int i=0; i<upgrades[upgradeNum].elementsRequired2.Count; i++){
-                        InventoryControls.Instance.elements[upgrades[upgradeNum].elementsRequired2[i]].amount--;
-                    }
+                    MainControls.Instance.fpc.m_WalkSpeed = 6;
+                    MainControls.Instance.fpc.m_WalkSpeed = 7;
                     break;
                 case 3:
-                    for (int i=0; i<upgrades[upgradeNum].elementsRequired3.Count; i++){
-                        InventoryControls.Instance.elements[upgrades[upgradeNum].elementsRequired3[i]].amount--;
-                    }
+                    MainControls.Instance.fpc.m_WalkSpeed = 7;
+                    MainControls.Instance.fpc.m_WalkSpeed = 8;
                     break;
                 case 4:
-                    for (int i=0; i<upgrades[upgradeNum].elementsRequired4.Count; i++){
-                        InventoryControls.Instance.elements[upgrades[upgradeNum].elementsRequired4[i]].amount--;
-                    }
+                    MainControls.Instance.fpc.m_WalkSpeed = 8;
+                    MainControls.Instance.fpc.m_WalkSpeed = 9;
+                    break;
+                case 5:
+                    MainControls.Instance.fpc.m_WalkSpeed = 9;
+                    MainControls.Instance.fpc.m_WalkSpeed = 10;
                     break;
             }
-            upgrades[upgradeNum].level ++;
-            HUDControls.Instance.UpdateUpgrades();
-            HUDControls.Instance.UpdateElements();
-            HUDControls.Instance.UpdateUpgradeReqs(upgradeNum);
         }
+
     }
 }

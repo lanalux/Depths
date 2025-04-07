@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
 
 public class HUDControls : MonoBehaviour
 {
@@ -10,9 +11,9 @@ public class HUDControls : MonoBehaviour
 
     [SerializeField] List<TextMeshProUGUI> elementText = new List<TextMeshProUGUI>();
     [SerializeField] List<TextMeshProUGUI> upgradesText = new List<TextMeshProUGUI>();
-    [SerializeField] CanvasGroup overlay;
+    public CanvasGroup overlay;
     [SerializeField] TextMeshProUGUI timerText, cursorText;
-    [SerializeField] GameObject timerGO, cursorGO;
+    [SerializeField] GameObject timerGO, cursorGO, cursorBG;
 
 
 
@@ -140,8 +141,9 @@ public class HUDControls : MonoBehaviour
         overlay.alpha = 0.0f;
     }
 
-    public void UpdateCursorText(string objectName){
-        cursorText.text = objectName;
+    public void UpdateCursorText(string message){
+        cursorText.text = message;
+        cursorBG.SetActive(true);
     }
 
     public void HideCursorHover(){
@@ -151,5 +153,11 @@ public class HUDControls : MonoBehaviour
     public void ShowCursorHover(){
         cursorGO.SetActive(true);
     }
+
+    public void ClearCursor(){
+        UpdateCursorText("");
+        cursorBG.SetActive(false);
+    }
+
 
 }
