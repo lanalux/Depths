@@ -12,7 +12,7 @@ public class HUDControls : MonoBehaviour
     [SerializeField] List<TextMeshProUGUI> elementText = new List<TextMeshProUGUI>();
     [SerializeField] List<TextMeshProUGUI> upgradesText = new List<TextMeshProUGUI>();
     public CanvasGroup overlay;
-    [SerializeField] TextMeshProUGUI timerText, cursorText;
+    [SerializeField] TextMeshProUGUI minText, secText, cursorText;
     [SerializeField] GameObject timerGO, cursorGO, cursorBG;
 
 
@@ -46,11 +46,19 @@ public class HUDControls : MonoBehaviour
     }
 
     void UpdateTime(){
-        float minutes = timeRemaining / 60.0f;
-        float seconds = timeRemaining % 60.0f;
-        float milliseconds = (timeRemaining % 1) * 100;
-        timerText.text = minutes.ToString("00") + ":" + seconds.ToString("00") + ":" + milliseconds.ToString("00");
+        float minutes = 0.0f;
+        float seconds;
         
+        if(timeRemaining >= 60.0f){
+            minutes = Mathf.Floor(timeRemaining / 60.0f);
+            seconds = Mathf.Floor(timeRemaining % 60.0f);
+        } else {
+            seconds = timeRemaining;
+        }
+
+        // minText.text = timeRemaining.ToString("00");
+        minText.text = minutes.ToString("00");
+        secText.text = seconds.ToString("00");
     }
 
     public void StartTimer(){
@@ -76,9 +84,13 @@ public class HUDControls : MonoBehaviour
 
 
     public void UpdateUpgrades(){
-        
         for(int i=0; i<upgradesText.Count; i++){
-            upgradesText[i].text = "Level " + UpgradeControls.Instance.upgrades[i].level.ToString();
+            if(UpgradeControls.Instance.upgrades[i].level == 5){
+                upgradesText[i].text = "Max Level";
+            } else {
+                upgradesText[i].text = "Level " + UpgradeControls.Instance.upgrades[i].level.ToString();
+            }
+            
         }
     }
 

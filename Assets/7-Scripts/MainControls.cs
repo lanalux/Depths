@@ -35,9 +35,9 @@ public class MainControls : MonoBehaviour
     LayerMask currentLayer;
 
     bool isHovering = false;
-    bool isMining = false;
+    bool isCollecting = false;
 
-    float miningTime = 3.0f;
+    float collectingTime = 3.0f;
     float timeElapsed = 0;
 
     bool isInShip = true;
@@ -48,7 +48,7 @@ public class MainControls : MonoBehaviour
     [SerializeField] AudioSource collectingSFX, slurpSFX, voice, explosion;
     [SerializeField] AudioClip endClip;
 
-    int currentElementBeingMined;
+    int currentElementBeingCollected;
 
     public bool raycastIsPaused = false;
 
@@ -114,11 +114,11 @@ public class MainControls : MonoBehaviour
             ClearRaycast();
         }
 
-        // Mining
+        // Collecting
         // if(isHovering && currentLayer == LayerMask.NameToLayer("Interactive") && Input.GetMouseButton(0)){ 
         if(isHovering && currentLayer == LayerMask.NameToLayer("Interactive") && Input.GetKey(KeyCode.E)){ 
-            StartMining();
-            ContinueMining();
+            StartCollecting();
+            ContinueCollecting();
         }
 
 
@@ -157,10 +157,10 @@ public class MainControls : MonoBehaviour
             }
         }
 
-        // Let go while mining
-        // if(isMining && Input.GetMouseButtonUp(0)){
-        if(isMining && Input.GetKeyUp(KeyCode.E)){
-            StopMining();
+        // Let go while collecting
+        // if(isCollecting && Input.GetMouseButtonUp(0)){
+        if(isCollecting && Input.GetKeyUp(KeyCode.E)){
+            StopCollecting();
         }
 
         // Check Distance - Distance is upgrade 1
@@ -198,26 +198,34 @@ public class MainControls : MonoBehaviour
         return Vector3.Distance(player.position, startPos.position);
     }
 
-    Transform currentlyMining;
+    Transform currentlyCollecting;
 
-    void StartMining(){
-        if(isMining){
+    Transform wobbler;
+
+    void StartCollecting(){
+        if(isCollecting){
             return;
         }
-        isMining = true;
+        isCollecting = true;
         HUDControls.Instance.HideCursorHover();
-        currentlyMining = currentTarget;
-        currentElementBeingMined = currentlyMining.GetComponent<ElementInfo>().elementNum;
+
+        currentlyCollecting = currentTarget;
+        if(currentTarget.childCount > 0){
+            wobbler = currentTarget.GetChild(0);
+        } else {
+            wobbler = null;
+        }
+        currentElementBeingCollected = currentlyCollecting.GetComponent<ElementInfo>().elementNum;
         timeElapsed = 0;
-        // progressCanvas.transform.position = currentlyMining.position;
+        // progressCanvas.transform.position = currentlyCollecting.position;
         // progressCanvas.transform.LookAt(player);
         progressCanvas.SetActive(true);
-        particles1.transform.position = currentlyMining.position;
+        particles1.transform.position = currentlyCollecting.position;
         particles1.SetActive(true);
-        collectingSFX.transform.position = currentlyMining.position;
+        collectingSFX.transform.position = currentlyCollecting.position;
         AudioControls.Instance.StopFade(collectingSFX);
         collectingSFX.Play();
-        wobbleStartPos = currentlyMining.position;
+        wobbleStartPos = currentlyCollecting.position;
     }
 
     float wobbleTimer = 0.01f;
@@ -227,42 +235,51 @@ public class MainControls : MonoBehaviour
     float maxWobbleAmount = 0.04f;
     Vector3 wobbleStartPos;
 
-    void ContinueMining(){
-        if(!isMining){
+    void ContinueCollecting(){
+        if(!isCollecting){
             return;
         }
         timeElapsed += Time.deltaTime;
         wobbleTimer -= Time.deltaTime;
         if(wobbleTimer <= 0.000f){
             wobbleTimer = Random.Range(minWobbleTime, maxWobbleTime);
-            currentlyMining.position = wobbleStartPos + new Vector3(Random.Range(minWobbleAmount,maxWobbleAmount), Random.Range(minWobbleAmount,maxWobbleAmount), Random.Range(minWobbleAmount,maxWobbleAmount));
+            if(wobbler!=null){
+                wobbler.position = wobbleStartPos + new Vector3(Random.Range(minWobbleAmount,maxWobbleAmount), Random.Range(minWobbleAmount,maxWobbleAmount), Random.Range(minWobbleAmount,maxWobbleAmount));
+            } else {
+                currentlyCollecting.position = wobbleStartPos + new Vector3(Random.Range(minWobbleAmount,maxWobbleAmount), Random.Range(minWobbleAmount,maxWobbleAmount), Random.Range(minWobbleAmount,maxWobbleAmount));
+            }
         }
 
-        if(timeElapsed >= miningTime){
+        if(timeElapsed >= collectingTime){
             Collected();
-            timeElapsed = miningTime;
-            StopMining();
+            timeElapsed = collectingTime;
+            StopCollecting();
             StartCoroutine(CollectObject());
         }
-        progressFill.fillAmount = timeElapsed/miningTime;
+        progressFill.fillAmount = timeElapsed/collectingTime;
     }
 
-    void StopMining(){
-        if(!isMining){
+    void StopCollecting(){
+        if(!isCollecting){
             return;
         }
-        isMining = false;
+        isCollecting = false;
         progressCanvas.SetActive(false);
         particles1.SetActive(false);
         AudioControls.Instance.FadeOutSource(collectingSFX);
-        currentlyMining.position = wobbleStartPos;
+        
+        if(wobbler!=null){
+            wobbler.position = wobbleStartPos;
+        } else {
+            currentlyCollecting.position = wobbleStartPos;
+        }
         HUDControls.Instance.ShowCursorHover();
     }
 
     void Collected(){
-        InventoryControls.Instance.elements[currentElementBeingMined].amount++;
+        InventoryControls.Instance.elements[currentElementBeingCollected].amount++;
         HUDControls.Instance.UpdateElements();
-        currentlyMining.GetComponent<Collider>().enabled = false;
+        currentlyCollecting.GetComponent<Collider>().enabled = false;
         
     }
 
@@ -270,7 +287,7 @@ public class MainControls : MonoBehaviour
 
     IEnumerator CollectObject(){
         slurpSFX.Play();
-        Vector3 startPos = currentlyMining.position;
+        Vector3 startPos = currentlyCollecting.position;
         Vector3 endPos = player.position;
         float t = 0f;
         while(t < collectingDuration){
@@ -278,14 +295,14 @@ public class MainControls : MonoBehaviour
 
             float normalizedTime = Mathf.Clamp01(t / collectingDuration);
             float easedT = 1f - Mathf.Pow(1f - normalizedTime, 3f);
-            currentlyMining.position = Vector3.Lerp(startPos, endPos, easedT);
+            currentlyCollecting.position = Vector3.Lerp(startPos, endPos, easedT);
 
-            // currentlyMining.position = Vector3.Lerp(startPos, endPos, t/collectingDuration);
+            // currentlyCollecting.position = Vector3.Lerp(startPos, endPos, t/collectingDuration);
             yield return null;
         }
 
-        currentlyMining.position = endPos;
-        Destroy(currentlyMining.gameObject);
+        currentlyCollecting.position = endPos;
+        Destroy(currentlyCollecting.gameObject);
     }
 
     void ClearRaycast(){
@@ -293,6 +310,7 @@ public class MainControls : MonoBehaviour
             return;
         }
         isHovering = false;
+        StopCollecting();
         progressCanvas.SetActive(false);
         currentTarget = null;
         HUDControls.Instance.ClearCursor();
@@ -366,6 +384,8 @@ public class MainControls : MonoBehaviour
         HUDControls.Instance.overlay.alpha = 1.0f;
 
         yield return new WaitForSeconds(3.0f);
+
+        Application.Quit();
     }
 
 }

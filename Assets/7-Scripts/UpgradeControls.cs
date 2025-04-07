@@ -162,23 +162,23 @@ public class UpgradeControls : MonoBehaviour
             switch(upgrades[upgradeNum].level){
                 case 1:
                     MainControls.Instance.fpc.m_WalkSpeed = 5;
-                    MainControls.Instance.fpc.m_WalkSpeed = 6;
+                    MainControls.Instance.fpc.m_RunSpeed = 7;
                     break;
                 case 2:
                     MainControls.Instance.fpc.m_WalkSpeed = 6;
-                    MainControls.Instance.fpc.m_WalkSpeed = 7;
+                    MainControls.Instance.fpc.m_RunSpeed = 8;
                     break;
                 case 3:
                     MainControls.Instance.fpc.m_WalkSpeed = 7;
-                    MainControls.Instance.fpc.m_WalkSpeed = 8;
+                    MainControls.Instance.fpc.m_RunSpeed = 9;
                     break;
                 case 4:
                     MainControls.Instance.fpc.m_WalkSpeed = 8;
-                    MainControls.Instance.fpc.m_WalkSpeed = 9;
+                    MainControls.Instance.fpc.m_RunSpeed = 10;
                     break;
                 case 5:
                     MainControls.Instance.fpc.m_WalkSpeed = 9;
-                    MainControls.Instance.fpc.m_WalkSpeed = 10;
+                    MainControls.Instance.fpc.m_RunSpeed = 11;
                     break;
             }
         }
